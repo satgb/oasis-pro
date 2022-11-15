@@ -3,6 +3,11 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QList>
+#include <QListWidget>
+
+#include "group.h"
+#include "session.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,13 +24,21 @@ public:
 private:
     Ui::MainWindow *ui;
     QTimer* timer;
+    QListWidget* activeQListWidget;
+    QList<Group*> groups;
+    Session* currentSession;
     bool isOn;
-    int timesIndex;
+    int groupsIndex;
+    int sessionsIndex;
 
 public slots:
     void startTimer();
-    void selectTime();
+    void selectGroup();
     void stopTimer();
     void powerChange();
+    void upPress();
+    void downPress();
+    void selectSession();
+    void blink();
 };
 #endif // MAINWINDOW_H

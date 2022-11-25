@@ -114,7 +114,6 @@ void MainWindow::recordSession()
 
         db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
         dbSessions.append(s);
-        //allSessions += (new Session(currentSession->type, currentSession->duration, currentSession->intensity))->toString();
         allSessions += s->toString();
     }
 

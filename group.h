@@ -8,13 +8,9 @@
 class Group
 {
 public:
-    Group();
-    Group(int, QList<int>);
-    int getTime();
-    //void getSessions();
+    Group(QList<int>);
+
     QList<int> sessions;
-    int time;
-private:
 };
 
 #endif // GROUP_H

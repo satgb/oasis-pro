@@ -1,13 +1,13 @@
-#include "session.h"
+#include "record.h"
 
-Session::Session(QString type, int duration, int intensity)
+Record::Record(QString type, int duration, int intensity)
 {
     this->type = type;
     this->duration = duration;
     this->intensity = intensity;
 }
 
-QString Session::toString()
+QString Record::toString()
 {
     QString newString = "Type:" + type + ", Duration:" + QString::number(duration) + ", Intensity:" + QString::number(intensity);
 

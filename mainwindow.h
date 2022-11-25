@@ -6,6 +6,8 @@
 #include <QList>
 #include <QListWidget>
 
+#include "dbmanager.h"
+#include "profile.h"
 #include "group.h"
 #include "session.h"
 
@@ -24,22 +26,40 @@ public:
 private:
     Ui::MainWindow *ui;
     QTimer* timer;
+    QTimer* sessionTimer;
     QListWidget* activeQListWidget;
     QList<Group*> groups;
+    int currentTimerCount;
+    QVector<Session*> dbSessions;
+
+    QStringList allSessions;
+
+    void updateRecordView(QStringList);
+
+    DBManager* db;
+    Profile* profile;
     Session* currentSession;
+
     bool deviceOn;
-    int groupsIndex;
-    int sessionsIndex;
+    bool sessionOn;
+    int groupIndex;
+    int typeIndex;
+
+    void blink();
 
 public slots:
-    void startTimer();
-    void selectGroup();
-    void stopTimer();
+    void switchGroup();
     void powerChange();
-    void upPress();
-    void downPress();
+    void pressUp();
+    void pressDown();
     void selectSession();
-    void blink();
     void changeBatteryLevel(double);
+    void initSession(Session*);
+    void startSession();
+    void drainBattery();
+    void recordSession();
+    void addSession();
+    void replaySession();
+    void endSession();
 };
 #endif // MAINWINDOW_H

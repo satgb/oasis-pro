@@ -470,8 +470,32 @@ void MainWindow::blink()
 }
 
 
+/*
+ * Function: changeBatteryLevel
+ * Purpose: Updates battery level on the ui
+ * Parameters: newLevel
+ * Return: void
+*/
 void MainWindow::changeBatteryLevel(double newLevel)
 {
+    if(currentSession != nullptr)
+    {
+        if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
+            ui->console->append("display battery");
+        else if(profile->batteryLvl > 75.0 && newLevel <= 75.0)
+            ui->console->append("display battery");
+        else if(profile->batteryLvl > 62.5 && newLevel <= 62.5)
+            ui->console->append("display battery");
+        else if(profile->batteryLvl > 50.0 && newLevel <= 50.0)
+            ui->console->append("display battery");
+        else if(profile->batteryLvl > 37.5 && newLevel <= 37.5)
+            ui->console->append("display battery");
+        else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
+            ui->console->append("display battery");
+        else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
+            ui->console->append("display battery");
+    }
+
     if (newLevel >= 0.0 && newLevel <= 100.0)
     {
         if (newLevel == 0.0 && deviceOn)
@@ -494,4 +518,6 @@ void MainWindow::changeBatteryLevel(double newLevel)
         powerChange();
     }
 }
+
+
 

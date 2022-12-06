@@ -106,6 +106,12 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+/*
+ * Function: recordSession
+ * Purpose: Stores the settings of the current session to the database
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::recordSession()
 {
     if(currentSession != nullptr && sessionOn)
@@ -138,6 +144,12 @@ void MainWindow::recordSession()
     updateRecordView(allSessions);
 }
 
+/*
+ * Function: updateRecordView
+ * Purpose: Updates the list of recordings on the ui
+ * Parameters: recordItems
+ * Return: void
+*/
 void MainWindow::updateRecordView(QStringList recordItems)
 {
     ui->recordList->clear();
@@ -145,6 +157,12 @@ void MainWindow::updateRecordView(QStringList recordItems)
     ui->recordList->setCurrentRow(0);
 }
 
+/*
+ * Function: powerChange
+ * Purpose: Prepares device to power on/off
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::powerChange()
 {
     if(deviceOn)
@@ -193,6 +211,12 @@ void MainWindow::powerChange()
     }
 }
 
+/*
+ * Function: endSession
+ * Purpose: Prepares device to terminate a session
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::endSession()
 {
     ui->centralwidget->blockSignals(true);
@@ -212,6 +236,12 @@ void MainWindow::endSession()
     powerChange();
 }
 
+/*
+ * Function: pressUp
+ * Purpose: Handles upButton press event depending on the context
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::pressUp()
 {
     if(deviceOn)
@@ -222,6 +252,7 @@ void MainWindow::pressUp()
             {
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("");
                 currentSession->intensity++;
+                //currentSession = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
             }
         }
@@ -244,6 +275,12 @@ void MainWindow::pressUp()
     }
 }
 
+/*
+ * Function: pressDown
+ * Purpose: Handles downButton press event depending on the context
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::pressDown()
 {
     if(deviceOn)
@@ -254,6 +291,7 @@ void MainWindow::pressDown()
             {
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("");
                 currentSession->intensity--;
+                //currentSession = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
             }
         }
@@ -276,8 +314,12 @@ void MainWindow::pressDown()
     }
 }
 
-
-
+/*
+ * Function: startSession
+ * Purpose: Controls the session timer
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::startSession()
 {
     if(ui->connectComboBox->currentIndex() > 0)
@@ -293,6 +335,12 @@ void MainWindow::startSession()
     }
 }
 
+/*
+ * Function: initSession
+ * Purpose: Initializes the selected recording
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::replaySession()
 {
     if(deviceOn)
@@ -307,6 +355,7 @@ void MainWindow::replaySession()
             {
                 Session* s = dbSessions.at(recordIndex);
 
+                //new Session prevents the current session from terminating when the recording list is cleared
                 initSession(new Session(s->type, s->duration, s->intensity));
 
                 //QString s = ui->console->append(allSessions.at(recordIndex));
@@ -317,6 +366,12 @@ void MainWindow::replaySession()
     }
 }
 
+/*
+ * Function: initSession
+ * Purpose: Prepares the device to start a new session
+ * Parameters: s
+ * Return: void
+*/
 void MainWindow::initSession(Session* s)
 {
     currentSession = s;
@@ -338,6 +393,12 @@ void MainWindow::initSession(Session* s)
     startSession();
 }
 
+/*
+ * Function: drainBattery
+ * Purpose: Calculates the battery level after 1 second of usage
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::drainBattery()
 {
     double batteryLevel = profile->batteryLvl - (0.05 + currentSession->intensity/100.00);
@@ -346,6 +407,12 @@ void MainWindow::drainBattery()
     changeBatteryLevel(batteryLevel);
 }
 
+/*
+ * Function: switchGroup
+ * Purpose: Highlights the selected session group
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::switchGroup()
 {
     if(deviceOn)
@@ -368,6 +435,12 @@ void MainWindow::switchGroup()
     }
 }
 
+/*
+ * Function: addSession
+ * Purpose: Creates a user defined session
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::addSession()
 {
     ui->addWidget->show();
@@ -407,6 +480,12 @@ void MainWindow::addSession()
     });
 }
 
+/*
+ * Function: selectSession
+ * Purpose: Gathers information to initialize a predefined session
+ * Parameters: none
+ * Return: void
+*/
 void MainWindow::selectSession()
 {
     if(groupIndex > -1 && groupIndex < 2 && typeIndex > -1)
@@ -478,22 +557,22 @@ void MainWindow::blink()
 */
 void MainWindow::changeBatteryLevel(double newLevel)
 {
-    if(currentSession != nullptr)
+    if(currentSession != nullptr && ui->connectComboBox->currentIndex() > 0)
     {
         if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
-            ui->console->append("display battery");
+            ui->console->append("display battery 7");
         else if(profile->batteryLvl > 75.0 && newLevel <= 75.0)
-            ui->console->append("display battery");
+            ui->console->append("display battery 6");
         else if(profile->batteryLvl > 62.5 && newLevel <= 62.5)
-            ui->console->append("display battery");
+            ui->console->append("display battery 5");
         else if(profile->batteryLvl > 50.0 && newLevel <= 50.0)
-            ui->console->append("display battery");
+            ui->console->append("display battery 4");
         else if(profile->batteryLvl > 37.5 && newLevel <= 37.5)
-            ui->console->append("display battery");
+            ui->console->append("display battery 3");
         else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
-            ui->console->append("display battery");
+            ui->console->append("display battery 2");
         else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
-            ui->console->append("display battery");
+            ui->console->append("display battery 1");
     }
 
     if (newLevel >= 0.0 && newLevel <= 100.0)

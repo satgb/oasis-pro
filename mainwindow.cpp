@@ -13,11 +13,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     groups.append(new Group({0, 2, 4, 6}));
     groups.append(new Group({1, 2, 3, 4}));
 
+    highlight = "background-color:yellow;";
+
     deviceOn = false;
     sessionOn = false;
     graphOn = false;
 
     blinkCount = 0;
+
+    softOffNum = 0;
 
     groupIndex = -1;
     typeIndex = -1;
@@ -30,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     batteryBlinkTimer = new QTimer(this);
     batteryBlinkCooldown = new QTimer(this);
 
+    countdownTimer = new QTimer(this);
+
     currentSession = nullptr;
 
     connect(ui->powerButton, &QPushButton::pressed, this, [this]()
@@ -38,10 +44,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         {
             timer->start(1000);
             if(!sessionOn)
-                switchGroup();
-            else
             {
-                endSession();
+                switchGroup();
             }
         }
         else
@@ -51,6 +55,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(ui->powerButton, &QPushButton::released, this, [this]()
     {
         timer->stop();
+
+        if (sessionOn){
+            countdownTimer->start(1000);
+        }
     });
 
     connect(timer, &QTimer::timeout, this, &MainWindow::powerChange);
@@ -68,6 +76,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     connect(batteryBlinkTimer, &QTimer::timeout, this, &MainWindow::displayBatteryWarning);
     connect(batteryBlinkCooldown, &QTimer::timeout, this, &MainWindow::startBatteryWarning);
+
+    connect(countdownTimer, &QTimer::timeout, this, &MainWindow::softOff);
 
     connect(ui->connectComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::startSession);
     ui->connectComboBox->blockSignals(true);
@@ -536,6 +546,12 @@ void MainWindow::displayBatteryWarning()
             ui->graph->itemAt(i)->widget()->setStyleSheet("");
         }
 
+        // re-display intensity
+        if (sessionOn){
+            ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet(highlight);
+        }
+
+
         // reset after 5 (arbitrary #) blinks
         if (blinkCount >= 5){
             batteryBlinkTimer->stop();
@@ -548,8 +564,6 @@ void MainWindow::displayBatteryWarning()
         // lights to turn on
         int maxGraphNum = qCeil(profile->batteryLvl / (100.0 / 8.0));
 
-        QString highlight = "background-color:yellow;";
-
         // turn on all lights up to corresponding battery level
         // itemAt() reads the labels backward so the for loop as to iterate backward as well
         for (int i = 7; i >= 8 - maxGraphNum; --i){
@@ -559,4 +573,23 @@ void MainWindow::displayBatteryWarning()
         ++blinkCount;
         graphOn = true;
     }
+}
+
+void MainWindow::softOff()
+{
+    // turn off light on all graph labels 1-8
+    for (int i = 0; i < 8; ++i){
+        ui->graph->itemAt(i)->widget()->setStyleSheet("");
+    }
+
+    if (softOffNum == 8){
+        endSession();
+        softOffNum = 0;
+        countdownTimer->stop();
+        return;
+    }
+
+    // turn on number corresponding to the countdown
+    ui->graph->itemAt(softOffNum)->widget()->setStyleSheet(highlight);
+    ++softOffNum;
 }

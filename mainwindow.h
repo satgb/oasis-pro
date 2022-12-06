@@ -30,12 +30,14 @@ private:
     QTimer* sessionTimer;
     QTimer* batteryBlinkTimer;
     QTimer* batteryBlinkCooldown;
+    QTimer* countdownTimer;
     QListWidget* activeQListWidget;
     QList<Group*> groups;
     int currentTimerCount;
     QVector<Session*> dbSessions;
 
     QStringList allSessions;
+    QString highlight;
 
     void updateRecordView(QStringList);
 
@@ -46,9 +48,14 @@ private:
     bool deviceOn;
     bool sessionOn;
     bool graphOn;
+
     int blinkCount;
+
+    int softOffNum;
+
     int groupIndex;
     int typeIndex;
+
 
 
     void blink();
@@ -69,5 +76,6 @@ public slots:
     void addSession();
     void replaySession();
     void endSession();
+    void softOff();
 };
 #endif // MAINWINDOW_H

@@ -110,11 +110,29 @@ void MainWindow::recordSession()
 {
     if(currentSession != nullptr && sessionOn)
     {
-        Session *s = currentSession;
+        if(!dbSessions.empty())
+        {
+            if(dbSessions.last()==currentSession)
+            {
+                ui->console->append("same session can't be added twice");
+            }
+            else
+            {
+                Session *s = currentSession;
 
-        db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
-        dbSessions.append(s);
-        allSessions += s->toString();
+                db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
+                dbSessions.append(s);
+                allSessions += s->toString();
+            }
+        }
+        else
+        {
+            Session *s = currentSession;
+
+            db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
+            dbSessions.append(s);
+            allSessions += s->toString();
+        }
     }
 
     updateRecordView(allSessions);
@@ -323,6 +341,7 @@ void MainWindow::initSession(Session* s)
 void MainWindow::drainBattery()
 {
     double batteryLevel = profile->batteryLvl - (0.05 + currentSession->intensity/100.00);
+    //double batteryLevel = profile->batteryLvl - (0.0002 + (currentSession->intensity/100000.00) + (ui->connectComboBox->currentIndex() == 1 ? 0.00001 : 0.00002));
 
     changeBatteryLevel(batteryLevel);
 }

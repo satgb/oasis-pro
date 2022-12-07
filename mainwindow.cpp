@@ -73,9 +73,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
         allSessions.clear();
 
-        for (int x = 0; x < dbSessions.size(); x++) {
+        for (int x = 0; x < dbSessions.size(); x++)
             delete dbSessions[x];
-        }
 
         dbSessions.clear();
         updateRecordView(allSessions);
@@ -116,29 +115,11 @@ void MainWindow::recordSession()
 {
     if(currentSession != nullptr && sessionOn)
     {
-        if(!dbSessions.empty())
-        {
-            if(dbSessions.last()==currentSession)
-            {
-                ui->console->append("same session can't be added twice");
-            }
-            else
-            {
-                Session *s = currentSession;
+        Session *s = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
 
-                db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
-                dbSessions.append(s);
-                allSessions += s->toString();
-            }
-        }
-        else
-        {
-            Session *s = currentSession;
-
-            db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
-            dbSessions.append(s);
-            allSessions += s->toString();
-        }
+        db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
+        dbSessions.append(s);
+        allSessions += s->toString();
     }
 
     updateRecordView(allSessions);
@@ -206,7 +187,6 @@ void MainWindow::powerChange()
             ui->powerLED->setStyleSheet("background-color:green;");
             updateRecordView(allSessions);
             ui->replayButton->blockSignals(false);
-
         }
     }
 }
@@ -252,7 +232,6 @@ void MainWindow::pressUp()
             {
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("");
                 currentSession->intensity++;
-                //currentSession = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
             }
         }
@@ -291,7 +270,6 @@ void MainWindow::pressDown()
             {
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("");
                 currentSession->intensity--;
-                //currentSession = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
                 ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
             }
         }
@@ -357,10 +335,6 @@ void MainWindow::replaySession()
 
                 //new Session prevents the current session from terminating when the recording list is cleared
                 initSession(new Session(s->type, s->duration, s->intensity));
-
-                //QString s = ui->console->append(allSessions.at(recordIndex));
-                //ui->console->append(ui->recordList->currentItem()->text());
-                //QString type = s
             }
         }
     }
@@ -401,7 +375,7 @@ void MainWindow::initSession(Session* s)
 */
 void MainWindow::drainBattery()
 {
-    double batteryLevel = profile->batteryLvl - (0.05 + currentSession->intensity/100.00);
+    double batteryLevel = profile->batteryLvl - 0.33;
     //double batteryLevel = profile->batteryLvl - (0.0002 + (currentSession->intensity/100000.00) + (ui->connectComboBox->currentIndex() == 1 ? 0.00001 : 0.00002));
 
     changeBatteryLevel(batteryLevel);
@@ -454,18 +428,12 @@ void MainWindow::addSession()
 
     connect(ui->runButton, &QPushButton::pressed, this, [this]()
     {
-        int typeIndex1 = ui->typeComboBox1->currentIndex();
-        int typeIndex2 = ui->typeComboBox2->currentIndex();
+        int typeIndex = ui->typeComboBox->currentIndex();
         int durationIndex = ui->durationComboBox->currentIndex();
 
-        if(typeIndex1 > 0 && durationIndex > -1)
+        if(typeIndex > 0 && durationIndex > -1)
         {
-            QString type = ui->typeComboBox1->currentText();
-
-            if(typeIndex2 > 0 && typeIndex1 != typeIndex2)
-            {
-                type += "+" + ui->typeComboBox2->currentText();
-            }
+            QString type = ui->typeComboBox->currentText();
 
             int duration = ui->durationComboBox->currentText().toInt();
             int intensity = ui->intensitySpinBox->value();

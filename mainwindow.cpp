@@ -5,6 +5,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 {
     ui->setupUi(this);
 
+    currentTimerCount = -1;
+
     db = new DBManager();
 
     profile = db->getProfile(1);
@@ -57,6 +59,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(sessionTimer, &QTimer::timeout, this, [this]()
     {
         drainBattery();
+
+        ui->console->append(QString::number(currentTimerCount));
+
+        if(currentTimerCount > 0)
+            currentTimerCount--;
+
+        if(currentTimerCount == 0)
+            endSession();
     });
 
     connect(ui->connectComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::startSession);
@@ -85,12 +95,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->addWidget->hide();
 
     ui->batteryLevelSpinBox->setValue(profile->batteryLvl);
+    ui->batteryLevelSpinBox->setSingleStep(10);
+    //ui->batteryLevelSpinBox->findChild<QLineEdit*>();
 
     dbSessions = db->getSessions(profile->id);
     for (int x = 0; x < dbSessions.size(); x++)
-    {
         allSessions += dbSessions[x]->toString();
-    }
 }
 
 MainWindow::~MainWindow()
@@ -115,6 +125,7 @@ void MainWindow::recordSession()
 {
     if(currentSession != nullptr && sessionOn)
     {
+        //create new Session pointer - do not use currentSession
         Session *s = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
 
         db->addSession(profile->id, currentSession->type, currentSession->duration, currentSession->intensity);
@@ -199,6 +210,8 @@ void MainWindow::powerChange()
 */
 void MainWindow::endSession()
 {
+    ui->console->append("session ended");
+
     ui->centralwidget->blockSignals(true);
 /*
     for(int i = 1; i <= 8; i++)
@@ -211,6 +224,7 @@ void MainWindow::endSession()
         });
     }
 */
+
     ui->centralwidget->blockSignals(false);
 
     powerChange();
@@ -349,6 +363,9 @@ void MainWindow::replaySession()
 void MainWindow::initSession(Session* s)
 {
     currentSession = s;
+
+    ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
+
     ui->selectButton->blockSignals(true);
     ui->connectComboBox->blockSignals(false);
     ui->recordButton->blockSignals(false);
@@ -363,7 +380,7 @@ void MainWindow::initSession(Session* s)
     ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
 
     sessionOn = true;
-    currentTimerCount = currentSession->duration;
+    currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
     startSession();
 }
 
@@ -487,8 +504,6 @@ void MainWindow::selectSession()
         else if(session == 7)
             s = "100 Hz";
 */
-        ui->console->append(s + " for " + g);
-
         initSession(new Session(s, g.toInt(), 1));
 /*
         QTimer::singleShot(1000, this, &MainWindow::blink);

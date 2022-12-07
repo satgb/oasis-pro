@@ -29,12 +29,9 @@ private:
     QTimer* sessionTimer;
     QListWidget* activeQListWidget;
     QList<Group*> groups;
-    int currentTimerCount;
     QVector<Session*> dbSessions;
 
     QStringList allSessions;
-
-    void updateRecordView(QStringList);
 
     DBManager* db;
     Profile* profile;
@@ -44,10 +41,12 @@ private:
     bool sessionOn;
     int groupIndex;
     int typeIndex;
+    int currentTimerCount;
 
     void blink();
+    void updateRecordView(QStringList);
 
-public slots:
+private slots:
     void switchGroup();
     void powerChange();
     void pressUp();

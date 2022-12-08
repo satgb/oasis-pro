@@ -172,8 +172,9 @@ void MainWindow::powerChange()
             groupIndex = -1;
         }
 
-        sessionOn = false;
         sessionTimer->stop();
+        currentTimerCount = -1;
+        sessionOn = false;
         ui->selectButton->blockSignals(false);
         ui->powerButton->blockSignals(false);
 
@@ -194,6 +195,9 @@ void MainWindow::powerChange()
             deviceOn = !deviceOn;
             ui->console->append("device is ON");
 
+            for(int i = 1; i <= qCeil(profile->batteryLvl*8/100); i++)      //determines how many bars of battery are left
+                blink(i);
+
             ui->graphWidget->setEnabled(true);
             ui->powerLED->setStyleSheet("background-color:green;");
             updateRecordView(allSessions);
@@ -212,22 +216,264 @@ void MainWindow::endSession()
 {
     ui->console->append("session ended");
 
-    ui->centralwidget->blockSignals(true);
-/*
-    for(int i = 1; i <= 8; i++)
+    sessionTimer->stop();
+
+    currentSession = nullptr;
+
+    ui->upButton->blockSignals(true);
+    ui->downButton->blockSignals(true);
+
+    //soft off
+    QTimer::singleShot(0, this, [this](){blink(8);});
+    QTimer::singleShot(500, this, [this](){blink(7);});
+    QTimer::singleShot(1000, this, [this](){blink(6);});
+    QTimer::singleShot(1500, this, [this](){blink(5);});
+    QTimer::singleShot(2000, this, [this](){blink(4);});
+    QTimer::singleShot(2500, this, [this](){blink(3);});
+    QTimer::singleShot(3000, this, [this](){blink(2);});
+    QTimer::singleShot(3500, this, [this](){blink(1);});
+
+    QTimer::singleShot(4000, this, [this]()
     {
-        ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(i))->setStyleSheet("background-color:yellow");
+        ui->upButton->blockSignals(false);
+        ui->downButton->blockSignals(false);
+        powerChange();
+    });
+}
 
-        QTimer::singleShot(1000, this, [this]()
-        {
-            ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(i))->setStyleSheet("");
-        });
-    }
+/*
+ * Function: changeBatteryLevel
+ * Purpose: Updates battery level on the ui
+ * Parameters: newLevel
+ * Return: void
 */
+void MainWindow::changeBatteryLevel(double newLevel)
+{
+    int barsToFlash = 0;
+//    if(currentSession != nullptr && ui->connectComboBox->currentIndex() > 0)
+//    {
 
-    ui->centralwidget->blockSignals(false);
+    //displays battery when 1 full bar is depleted
+    if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
+        barsToFlash = 7;
+    else if(profile->batteryLvl > 75.0 && newLevel <= 75.0)
+        barsToFlash = 6;
+    else if(profile->batteryLvl > 62.5 && newLevel <= 62.5)
+        barsToFlash = 5;
+    else if(profile->batteryLvl > 50.0 && newLevel <= 50.0)
+        barsToFlash = 4;
+    else if(profile->batteryLvl > 37.5 && newLevel <= 37.5)
+        barsToFlash = 3;
+    else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
+        barsToFlash = 2;
+    else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
+        barsToFlash = 1;
 
-    powerChange();
+    for(int i = 1; i <= barsToFlash; i++)
+        blink(i);
+//    }
+
+
+    if (newLevel >= 0.0 && newLevel <= 100.0)
+    {
+        if (newLevel == 0.0 && deviceOn)
+        {
+            profile->batteryLvl = 0;
+            powerChange();
+        }
+        else
+            profile->batteryLvl = newLevel;
+
+        ui->batteryLevelSpinBox->setValue(newLevel);
+        int newLevelInt = int(newLevel);
+        ui->batteryLevelBar->setValue(newLevelInt);
+    }
+    else
+    {
+        ui->batteryLevelSpinBox->setValue(0);
+        ui->batteryLevelBar->setValue(0);
+        powerChange();
+    }
+}
+
+/*
+ * Function: startSession
+ * Purpose: Controls the session timer
+ * Parameters: none
+ * Return: void
+*/
+void MainWindow::startSession()
+{
+    if(currentSession != nullptr)       //session timer starts when session is selected
+    {
+        if(ui->connectComboBox->currentIndex() > 0)
+        {
+            ui->console->append("session started");
+            sessionTimer->start(1000);
+        }
+        else
+        {
+            ui->console->append("waiting for connection");
+            sessionTimer->stop();
+        }
+    }
+}
+
+/*
+ * Function: initSession
+ * Purpose: Initializes the selected recording
+ * Parameters: none
+ * Return: void
+*/
+void MainWindow::replaySession()
+{
+    if(deviceOn)
+    {
+        if(sessionOn == false)
+        {
+            int recordIndex = ui->recordList->currentRow();
+
+            ui->console->append(QString::number(recordIndex));
+
+            if(recordIndex > -1)
+            {
+                Session* s = dbSessions.at(recordIndex);
+
+                //new Session prevents the current session from terminating when the recording list is cleared
+                initSession(new Session(s->type, s->duration, s->intensity));
+            }
+        }
+    }
+}
+
+/*
+ * Function: initSession
+ * Purpose: Prepares the device to start a new session
+ * Parameters: s
+ * Return: void
+*/
+void MainWindow::initSession(Session* s)        //DOUBLE CHECK THIS FUNCTION
+{
+    currentSession = s;
+
+    ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
+
+    ui->selectButton->blockSignals(true);
+    ui->connectComboBox->blockSignals(false);
+    ui->recordButton->blockSignals(false);
+    ui->replayButton->blockSignals(true);
+//    ui->upButton->blockSignals(true);
+//    ui->downButton->blockSignals(true);
+
+//    ui->groups->itemAt(groupIndex)->widget()->setStyleSheet("");
+//    ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->setStyleSheet("");
+
+    ui->sessionWidget->setEnabled(false);
+    ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
+
+    sessionOn = true;
+    currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
+    startSession();
+}
+
+/*
+ * Function: drainBattery
+ * Purpose: Calculates the battery level after 1 second of usage
+ * Parameters: none
+ * Return: void
+*/
+void MainWindow::drainBattery()
+{
+    //battery lasts for 5 minutes - longest session is 4.5 minutes
+    double batteryLevel = profile->batteryLvl - 0.33;
+    //double batteryLevel = profile->batteryLvl - (0.0002 + (currentSession->intensity/100000.00) + (ui->connectComboBox->currentIndex() == 1 ? 0.00001 : 0.00002));
+
+    changeBatteryLevel(batteryLevel);
+}
+
+/*
+ * Function: addSession
+ * Purpose: Creates a user defined session
+ * Parameters: none
+ * Return: void
+*/
+void MainWindow::addSession()
+{
+    ui->addWidget->show();
+    ui->powerButton->blockSignals(true);
+
+    connect(ui->closeButton, &QPushButton::pressed, this, [this]()
+    {
+        ui->addWidget->hide();
+        ui->powerButton->blockSignals(false);
+    });
+
+    connect(ui->runButton, &QPushButton::pressed, this, [this]()
+    {
+        int typeIndex = ui->typeComboBox->currentIndex();
+        int durationIndex = ui->durationComboBox->currentIndex();
+
+        if(typeIndex > 0 && durationIndex > -1)
+        {
+            QString type = ui->typeComboBox->currentText();
+
+            int duration = ui->durationComboBox->currentText().toInt();
+            int intensity = ui->intensitySpinBox->value();
+
+            //ui->console->append(type + " " + QString::number(duration) + " " + QString::number(intensity));
+
+            ui->addWidget->hide();
+            ui->powerButton->blockSignals(false);
+
+            initSession(new Session(type, duration, intensity));
+        }
+    });
+}
+
+/*
+ * Function: selectSession
+ * Purpose: Gathers information to initialize a predefined session
+ * Parameters: none
+ * Return: void
+*/
+void MainWindow::selectSession()
+{
+    if(groupIndex > -1 && groupIndex < 2 && typeIndex > -1)
+    {
+        QString g = ui->groups->itemAt(groupIndex)->widget()->objectName().remove(0,5);
+
+        QString s = ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->objectName().remove(0,5);
+
+        //blink((groups.at(groupIndex)->sessions.at(typeIndex))+1);
+        initSession(new Session(s, g.toInt(), 1));
+    }
+    else if(groupIndex == 2)
+    {
+        addSession();
+    }
+}
+
+void MainWindow::blink(int graphLabelNum)
+{
+    QTimer::singleShot(0, this, [this, graphLabelNum]()
+    {
+        ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("background-color:orange;");
+        ui->upButton->blockSignals(true);
+        ui->downButton->blockSignals(true);
+    });
+
+    QTimer::singleShot(500, this, [this, graphLabelNum]()
+    {
+        ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("");
+
+        if(currentSession != nullptr)
+        {
+            ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
+        }
+
+        ui->upButton->blockSignals(false);
+        ui->downButton->blockSignals(false);
+    });
 }
 
 /*
@@ -307,98 +553,6 @@ void MainWindow::pressDown()
 }
 
 /*
- * Function: startSession
- * Purpose: Controls the session timer
- * Parameters: none
- * Return: void
-*/
-void MainWindow::startSession()
-{
-    if(ui->connectComboBox->currentIndex() > 0)
-    {
-        ui->console->append("session started");
-
-        sessionTimer->start(1000);
-    }
-    else
-    {
-        ui->console->append("waiting for connection");
-        sessionTimer->stop();
-    }
-}
-
-/*
- * Function: initSession
- * Purpose: Initializes the selected recording
- * Parameters: none
- * Return: void
-*/
-void MainWindow::replaySession()
-{
-    if(deviceOn)
-    {
-        if(sessionOn == false)
-        {
-            int recordIndex = ui->recordList->currentRow();
-
-            ui->console->append(QString::number(recordIndex));
-
-            if(recordIndex > -1)
-            {
-                Session* s = dbSessions.at(recordIndex);
-
-                //new Session prevents the current session from terminating when the recording list is cleared
-                initSession(new Session(s->type, s->duration, s->intensity));
-            }
-        }
-    }
-}
-
-/*
- * Function: initSession
- * Purpose: Prepares the device to start a new session
- * Parameters: s
- * Return: void
-*/
-void MainWindow::initSession(Session* s)
-{
-    currentSession = s;
-
-    ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
-
-    ui->selectButton->blockSignals(true);
-    ui->connectComboBox->blockSignals(false);
-    ui->recordButton->blockSignals(false);
-    ui->replayButton->blockSignals(true);
-//    ui->upButton->blockSignals(true);
-//    ui->downButton->blockSignals(true);
-
-//    ui->groups->itemAt(groupIndex)->widget()->setStyleSheet("");
-//    ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->setStyleSheet("");
-
-    ui->sessionWidget->setEnabled(false);
-    ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
-
-    sessionOn = true;
-    currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
-    startSession();
-}
-
-/*
- * Function: drainBattery
- * Purpose: Calculates the battery level after 1 second of usage
- * Parameters: none
- * Return: void
-*/
-void MainWindow::drainBattery()
-{
-    double batteryLevel = profile->batteryLvl - 0.33;
-    //double batteryLevel = profile->batteryLvl - (0.0002 + (currentSession->intensity/100000.00) + (ui->connectComboBox->currentIndex() == 1 ? 0.00001 : 0.00002));
-
-    changeBatteryLevel(batteryLevel);
-}
-
-/*
  * Function: switchGroup
  * Purpose: Highlights the selected session group
  * Parameters: none
@@ -423,161 +577,6 @@ void MainWindow::switchGroup()
 
         groupIndex = (groupIndex + 1) % 3;
         ui->groups->itemAt(groupIndex)->widget()->setStyleSheet("background-color:yellow;");
-    }
-}
-
-/*
- * Function: addSession
- * Purpose: Creates a user defined session
- * Parameters: none
- * Return: void
-*/
-void MainWindow::addSession()
-{
-    ui->addWidget->show();
-    ui->powerButton->blockSignals(true);
-
-    connect(ui->closeButton, &QPushButton::pressed, this, [this]()
-    {
-        ui->addWidget->hide();
-        ui->powerButton->blockSignals(false);
-    });
-
-    connect(ui->runButton, &QPushButton::pressed, this, [this]()
-    {
-        int typeIndex = ui->typeComboBox->currentIndex();
-        int durationIndex = ui->durationComboBox->currentIndex();
-
-        if(typeIndex > 0 && durationIndex > -1)
-        {
-            QString type = ui->typeComboBox->currentText();
-
-            int duration = ui->durationComboBox->currentText().toInt();
-            int intensity = ui->intensitySpinBox->value();
-
-            //ui->console->append(type + " " + QString::number(duration) + " " + QString::number(intensity));
-
-            ui->addWidget->hide();
-            ui->powerButton->blockSignals(false);
-
-            initSession(new Session(type, duration, intensity));
-        }
-    });
-}
-
-/*
- * Function: selectSession
- * Purpose: Gathers information to initialize a predefined session
- * Parameters: none
- * Return: void
-*/
-void MainWindow::selectSession()
-{
-    if(groupIndex > -1 && groupIndex < 2 && typeIndex > -1)
-    {
-        //int session = groups.at(groupIndex)->sessions.at(typeIndex);
-
-//        QString g = "-";
-        QString g = ui->groups->itemAt(groupIndex)->widget()->objectName().remove(0,5);
-
-        QString s = ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->objectName().remove(0,5);
-/*
-        if(groupIndex == 0)
-            g = "20";
-        else if(groupIndex == 1)
-            g = "45";
-
-        if(session == 0)
-            s = "MET";
-        else if(session == 1)
-            s = "Sub-Delta";
-        else if(session == 2)
-            s = "Delta";
-        else if(session == 3)
-            s = "Theta";
-        else if(session == 4)
-            s = "Alpha";
-        else if(session == 5)
-            s = "SMR";
-        else if(session == 6)
-            s = "Beta";
-        else if(session == 7)
-            s = "100 Hz";
-*/
-        initSession(new Session(s, g.toInt(), 1));
-/*
-        QTimer::singleShot(1000, this, &MainWindow::blink);
-        QTimer::singleShot(1200, this, &MainWindow::blink);
-        QTimer::singleShot(1400, this, &MainWindow::blink);
-        QTimer::singleShot(1600, this, &MainWindow::blink);
-        QTimer::singleShot(1800, this, &MainWindow::blink);
-        QTimer::singleShot(2000, this, &MainWindow::blink);*/
-    }
-    else if(groupIndex == 2)
-    {
-        addSession();
-    }
-}
-
-void MainWindow::blink()
-{
-    int session = abs(groups.at(groupIndex)->sessions.at(typeIndex) - 7);
-
-    QString highlight = "background-color:yellow;";
-
-    if(ui->graph->itemAt(session)->widget()->styleSheet() == highlight)
-        ui->graph->itemAt(session)->widget()->setStyleSheet("");
-    else
-        ui->graph->itemAt(session)->widget()->setStyleSheet(highlight);
-}
-
-
-/*
- * Function: changeBatteryLevel
- * Purpose: Updates battery level on the ui
- * Parameters: newLevel
- * Return: void
-*/
-void MainWindow::changeBatteryLevel(double newLevel)
-{
-    if(currentSession != nullptr && ui->connectComboBox->currentIndex() > 0)
-    {
-        if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
-            ui->console->append("display battery 7");
-        else if(profile->batteryLvl > 75.0 && newLevel <= 75.0)
-            ui->console->append("display battery 6");
-        else if(profile->batteryLvl > 62.5 && newLevel <= 62.5)
-            ui->console->append("display battery 5");
-        else if(profile->batteryLvl > 50.0 && newLevel <= 50.0)
-            ui->console->append("display battery 4");
-        else if(profile->batteryLvl > 37.5 && newLevel <= 37.5)
-            ui->console->append("display battery 3");
-        else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
-            ui->console->append("display battery 2");
-        else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
-            ui->console->append("display battery 1");
-    }
-
-    if (newLevel >= 0.0 && newLevel <= 100.0)
-    {
-        if (newLevel == 0.0 && deviceOn)
-        {
-            powerChange();
-            profile->batteryLvl = 0;
-        }
-        else
-            profile->batteryLvl = newLevel;
-
-        ui->batteryLevelSpinBox->setValue(newLevel);
-        int newLevelInt = int(newLevel);
-        ui->batteryLevelBar->setValue(newLevelInt);
-    }
-    else
-    {
-        ui->console->append("negative");
-        ui->batteryLevelSpinBox->setValue(0);
-        ui->batteryLevelBar->setValue(0);
-        powerChange();
     }
 }
 

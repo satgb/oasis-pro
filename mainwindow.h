@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QList>
 #include <QListWidget>
+#include <QtMath>
 
 #include "dbmanager.h"
 #include "profile.h"
@@ -43,7 +44,7 @@ private:
     int typeIndex;
     int currentTimerCount;
 
-    void blink();
+    void blink(int);
     void updateRecordView(QStringList);
 
 private slots:

@@ -44,7 +44,7 @@ private:
     int typeIndex;
     int currentTimerCount;
 
-    void blink(int);
+    void blink(int, QString = "orange");
     void updateRecordView(QStringList);
 
 private slots:

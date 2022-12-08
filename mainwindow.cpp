@@ -159,7 +159,7 @@ void MainWindow::powerChange()
 {
     if(deviceOn)
     {
-        deviceOn = !deviceOn;
+        deviceOn = false;
         ui->console->append("device is OFF");
         if(groupIndex > -1)
         {
@@ -192,7 +192,7 @@ void MainWindow::powerChange()
     {
         if(profile->batteryLvl > 0)
         {
-            deviceOn = !deviceOn;
+            deviceOn = true;
             ui->console->append("device is ON");
 
             for(int i = 1; i <= qCeil(profile->batteryLvl*8/100); i++)      //determines how many bars of battery are left
@@ -222,6 +222,8 @@ void MainWindow::endSession()
 
     ui->upButton->blockSignals(true);
     ui->downButton->blockSignals(true);
+    ui->powerButton->blockSignals(true);
+    timer->stop();      //must stop timer because blocked powerButton will not register release
 
     //soft off
     QTimer::singleShot(0, this, [this](){blink(8);});
@@ -237,6 +239,7 @@ void MainWindow::endSession()
     {
         ui->upButton->blockSignals(false);
         ui->downButton->blockSignals(false);
+        ui->powerButton->blockSignals(true);
         powerChange();
     });
 }
@@ -358,6 +361,24 @@ void MainWindow::initSession(Session* s)        //DOUBLE CHECK THIS FUNCTION
 
     ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
 
+    if(ui->connectComboBox->currentIndex() == 0)    //no connection
+    {
+        blink(8, "red");
+        blink(7, "red");
+    }
+    else if(ui->connectComboBox->currentIndex() == 1)    //okay connection
+    {
+        blink(6, "yellow");
+        blink(5, "yellow");
+        blink(4, "yellow");
+    }
+    else if(ui->connectComboBox->currentIndex() == 2)    //excellent connection
+    {
+        blink(3, "green");
+        blink(2, "green");
+        blink(1, "green");
+    }
+
     ui->selectButton->blockSignals(true);
     ui->connectComboBox->blockSignals(false);
     ui->recordButton->blockSignals(false);
@@ -453,11 +474,11 @@ void MainWindow::selectSession()
     }
 }
 
-void MainWindow::blink(int graphLabelNum)
+void MainWindow::blink(int graphLabelNum, QString color)
 {
-    QTimer::singleShot(0, this, [this, graphLabelNum]()
+    QTimer::singleShot(0, this, [this, graphLabelNum, color]()
     {
-        ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("background-color:orange;");
+        ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("background-color:" + color + ";");
         ui->upButton->blockSignals(true);
         ui->downButton->blockSignals(true);
     });

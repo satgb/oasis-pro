@@ -155,7 +155,7 @@ void MainWindow::updateRecordView(QStringList recordItems)
  * Parameters: none
  * Return: void
 */
-void MainWindow::powerChange()
+void MainWindow::powerChange()      //NOTE: needs testing
 {
     if(deviceOn)
     {
@@ -212,7 +212,7 @@ void MainWindow::powerChange()
  * Parameters: none
  * Return: void
 */
-void MainWindow::endSession()
+void MainWindow::endSession()       //NOTE: needs testing
 {
     ui->console->append("session ended");
 
@@ -223,7 +223,7 @@ void MainWindow::endSession()
     ui->upButton->blockSignals(true);
     ui->downButton->blockSignals(true);
     ui->powerButton->blockSignals(true);
-    timer->stop();      //must stop timer because blocked powerButton will not register release
+    timer->stop();      //have to stop timer here because blocked powerButton will not register release
 
     //soft off
     QTimer::singleShot(0, this, [this](){blink(8);});
@@ -355,12 +355,13 @@ void MainWindow::replaySession()
  * Parameters: s
  * Return: void
 */
-void MainWindow::initSession(Session* s)        //DOUBLE CHECK THIS FUNCTION
+void MainWindow::initSession(Session* s)    //NOTE: needs testing
 {
     currentSession = s;
 
     ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
 
+    //CONNECTION TEST
     if(ui->connectComboBox->currentIndex() == 0)    //no connection
     {
         blink(8, "red");
@@ -403,7 +404,7 @@ void MainWindow::initSession(Session* s)        //DOUBLE CHECK THIS FUNCTION
  * Parameters: none
  * Return: void
 */
-void MainWindow::drainBattery()
+void MainWindow::drainBattery()     //NOTE:BATTERY DRAIN CALCULATION
 {
     //battery lasts for 5 minutes - longest session is 4.5 minutes
     double batteryLevel = profile->batteryLvl - 0.33;

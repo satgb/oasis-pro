@@ -96,7 +96,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     ui->batteryLevelSpinBox->setValue(profile->batteryLvl);
     ui->batteryLevelSpinBox->setSingleStep(10);
-    //ui->batteryLevelSpinBox->findChild<QLineEdit*>();
+//    ui->batteryLevelSpinBox->findChild<QLineEdit*>();         //disable line edit of battery level
 
     dbSessions = db->getSessions(profile->id);
     for (int x = 0; x < dbSessions.size(); x++)

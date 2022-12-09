@@ -264,48 +264,49 @@ void MainWindow::endSession()
 */
 void MainWindow::changeBatteryLevel(double newLevel)
 {
-    int barsToFlash = 0;
-
-    //displays battery when 1 full bar is depleted
-    if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
-        barsToFlash = 7;
-    else if(profile->batteryLvl > 75.0 && newLevel <= 75.0)
-        barsToFlash = 6;
-    else if(profile->batteryLvl > 62.5 && newLevel <= 62.5)
-        barsToFlash = 5;
-    else if(profile->batteryLvl > 50.0 && newLevel <= 50.0)
-        barsToFlash = 4;
-    else if(profile->batteryLvl > 37.5 && newLevel <= 37.5)
-        barsToFlash = 3;
-    else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
-        barsToFlash = 2;
-    else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
+    if(currentSession != nullptr)
     {
-        barsToFlash = 1;
-        if(currentSession != nullptr )
+        int barsToFlash = 0;
+
+        //displays battery when 1 full bar is depleted
+        if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
+            barsToFlash = 7;
+        else if(profile->batteryLvl > 75.0 && newLevel <= 75.0)
+            barsToFlash = 6;
+        else if(profile->batteryLvl > 62.5 && newLevel <= 62.5)
+            barsToFlash = 5;
+        else if(profile->batteryLvl > 50.0 && newLevel <= 50.0)
+            barsToFlash = 4;
+        else if(profile->batteryLvl > 37.5 && newLevel <= 37.5)
+            barsToFlash = 3;
+        else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
+            barsToFlash = 2;
+        else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
         {
-            ui->console->append("battery at 1 bar - ENDING session");
+            barsToFlash = 1;
+
+            ui->console->append("battery at 1 bar - ending session");
             sessionTimer->stop();
         }
-    }
 
-    if(barsToFlash > 0)     //run only when 1 bar is depleted - not every sec
-    {
-        ui->upButton->blockSignals(true);
-        ui->downButton->blockSignals(true);
-
-        for(int i = 1; i <= barsToFlash; i++)
-            blink(i, 1000);
-
-        //block buttons to sync with blink timing
-        QTimer::singleShot(1500, this, [this]()
+        if(barsToFlash > 0)     //run only when 1 bar is depleted - not every sec
         {
-            ui->upButton->blockSignals(false);
-            ui->downButton->blockSignals(false);
+            ui->upButton->blockSignals(true);
+            ui->downButton->blockSignals(true);
 
-            if(currentSession != nullptr && profile->batteryLvl <= 12.5)
-                endSession();
-        });
+            for(int i = 1; i <= barsToFlash; i++)
+                blink(i, 1000);
+
+            //block buttons to sync with blink timing
+            QTimer::singleShot(1500, this, [this]()
+            {
+                ui->upButton->blockSignals(false);
+                ui->downButton->blockSignals(false);
+
+                if(profile->batteryLvl <= 12.5)
+                    endSession();
+            });
+        }
     }
 
 

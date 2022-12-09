@@ -249,7 +249,7 @@ void MainWindow::endSession()       //NOTE: needs testing
     {
         ui->upButton->blockSignals(false);
         ui->downButton->blockSignals(false);
-        ui->powerButton->blockSignals(true);
+        ui->powerButton->blockSignals(false);
         powerChange();
     });
 }
@@ -284,8 +284,20 @@ void MainWindow::changeBatteryLevel(double newLevel)
             endSession();
     }
 
-    for(int i = 1; i <= barsToFlash; i++)
-        blink(i);
+    if(barsToFlash > 0)
+    {
+        ui->upButton->blockSignals(true);
+        ui->downButton->blockSignals(true);
+
+        for(int i = 1; i <= barsToFlash; i++)
+            blink(i);
+
+        QTimer::singleShot(500, this, [this]()
+        {
+            ui->upButton->blockSignals(false);
+            ui->downButton->blockSignals(false);
+        });
+    }
 
 
     if (newLevel >= 0.0 && newLevel <= 100.0)
@@ -379,6 +391,9 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
 
     ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
 
+    ui->upButton->blockSignals(true);
+    ui->downButton->blockSignals(true);
+
     //CONNECTION TEST
     if(ui->connectComboBox->currentIndex() == 0)    //no connection
     {
@@ -398,17 +413,17 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
         blink(1, "green");
     }
 
+    QTimer::singleShot(500, this, [this]()
+    {
+        ui->upButton->blockSignals(false);
+        ui->downButton->blockSignals(false);
+    });
+
     sessionOn = true;       //NOTE: check
 
     ui->selectButton->blockSignals(true);
     ui->connectComboBox->blockSignals(false);
     ui->recordButton->blockSignals(false);
-//    ui->replayButton->blockSignals(true);
-//    ui->upButton->blockSignals(true);
-//    ui->downButton->blockSignals(true);
-
-//    ui->groups->itemAt(groupIndex)->widget()->setStyleSheet("");
-//    ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->setStyleSheet("");
 
     ui->sessionWidget->setEnabled(false);
     ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
@@ -493,8 +508,6 @@ void MainWindow::blink(int graphLabelNum, QString color)
     QTimer::singleShot(0, this, [this, graphLabelNum, color]()
     {
         ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("background-color:" + color + ";");
-        ui->upButton->blockSignals(true);
-        ui->downButton->blockSignals(true);
     });
 
     QTimer::singleShot(500, this, [this, graphLabelNum]()
@@ -503,9 +516,6 @@ void MainWindow::blink(int graphLabelNum, QString color)
 
         if(currentSession != nullptr)
             ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
-
-        ui->upButton->blockSignals(false);
-        ui->downButton->blockSignals(false);
     });
 }
 

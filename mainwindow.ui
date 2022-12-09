@@ -308,7 +308,7 @@
        <item row="2" column="1">
         <widget class="QPushButton" name="replaceBatteryButton">
          <property name="text">
-          <string>Replace battery</string>
+          <string>Replace Battery</string>
          </property>
         </widget>
        </item>

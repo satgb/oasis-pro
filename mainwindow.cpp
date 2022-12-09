@@ -405,7 +405,7 @@ void MainWindow::initSession(Session* s)
     ui->downButton->blockSignals(true);
     ui->powerButton->blockSignals(true);
 
-    //CONNECTION TEST
+    //connection test
     if(ui->connectComboBox->currentIndex() == 0)    //no connection
     {
         blink(8, 1000, "red");

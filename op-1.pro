@@ -21,7 +21,6 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     profile.cpp \
-    record.cpp \
     session.cpp
 
 HEADERS += \
@@ -29,7 +28,6 @@ HEADERS += \
     group.h \
     mainwindow.h \
     profile.h \
-    record.h \
     session.h
 
 FORMS += \

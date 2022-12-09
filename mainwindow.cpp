@@ -60,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     connect(ui->replaceBatteryButton, &QPushButton::released, this, [this]()
     {
-        changeBatteryLevel(100.0);
+        changeBatteryLevel(63.0);
     });
 
     connect(sessionTimer, &QTimer::timeout, this, [this]()
@@ -205,7 +205,7 @@ void MainWindow::powerChange()      //NOTE: needs testing
             ui->console->append("device is ON");
 
             for(int i = 1; i <= qCeil(profile->batteryLvl*8/100); i++)      //determines how many bars of battery are left
-                blink(i);
+                blink(i, 1000);
 
             ui->graphWidget->setEnabled(true);
             ui->powerLED->setStyleSheet("background-color:green;");
@@ -282,23 +282,29 @@ void MainWindow::changeBatteryLevel(double newLevel)
     else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
     {
         barsToFlash = 1;
-        if(currentSession != nullptr)
-            endSession();
+        if(currentSession != nullptr )
+        {
+            ui->console->append("battery at 1 bar - ENDING session");
+            sessionTimer->stop();
+        }
     }
 
-    if(barsToFlash > 0)
+    if(barsToFlash > 0)     //run only when 1 bar is depleted - not every sec
     {
         ui->upButton->blockSignals(true);
         ui->downButton->blockSignals(true);
 
         for(int i = 1; i <= barsToFlash; i++)
-            blink(i);
+            blink(i, 1000);
 
         //block buttons to sync with blink timing
-        QTimer::singleShot(500, this, [this]()
+        QTimer::singleShot(1500, this, [this]()
         {
             ui->upButton->blockSignals(false);
             ui->downButton->blockSignals(false);
+
+            if(currentSession != nullptr && profile->batteryLvl <= 12.5)
+                endSession();
         });
     }
 
@@ -383,7 +389,7 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
 {
     inactivityTimer->stop();
 
-    if(profile->batteryLvl < 12.5)
+    if(profile->batteryLvl <= 12.5)
     {
         ui->console->append("battery too low to run session");
         powerChange();
@@ -401,41 +407,41 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
     //CONNECTION TEST
     if(ui->connectComboBox->currentIndex() == 0)    //no connection
     {
-        blink(8, "red");
-        blink(7, "red");
+        blink(8, 1000, "red");
+        blink(7, 1000, "red");
     }
     else if(ui->connectComboBox->currentIndex() == 1)    //okay connection
     {
-        blink(6, "yellow");
-        blink(5, "yellow");
-        blink(4, "yellow");
+        blink(6, 1000, "yellow");
+        blink(5, 1000, "yellow");
+        blink(4, 1000, "yellow");
     }
     else if(ui->connectComboBox->currentIndex() == 2)    //excellent connection
     {
-        blink(3, "green");
-        blink(2, "green");
-        blink(1, "green");
+        blink(3, 1000, "green");
+        blink(2, 1000, "green");
+        blink(1, 1000, "green");
     }
 
-    //block buttons to sync with blink timing
-    QTimer::singleShot(500, this, [this]()
+    //block buttons to sync with blink timing + prevent collision between connection test and display battery
+    QTimer::singleShot(1000, this, [this]()
     {
         ui->upButton->blockSignals(false);
         ui->downButton->blockSignals(false);
         ui->powerButton->blockSignals(false);
+
+        ui->selectButton->blockSignals(true);
+        ui->connectComboBox->blockSignals(false);
+        ui->recordButton->blockSignals(false);
+
+        ui->sessionWidget->setEnabled(false);
+
+        //display intensity on graph
+        ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
+
+        currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
+        startSession();
     });
-
-    ui->selectButton->blockSignals(true);
-    ui->connectComboBox->blockSignals(false);
-    ui->recordButton->blockSignals(false);
-
-    ui->sessionWidget->setEnabled(false);
-
-    //display intensity on graph
-    ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
-
-    currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
-    startSession();
 }
 
 /*
@@ -509,14 +515,14 @@ void MainWindow::selectSession()
         addSession();
 }
 
-void MainWindow::blink(int graphLabelNum, QString color)
+void MainWindow::blink(int graphLabelNum, int duration, QString color)
 {
     QTimer::singleShot(0, this, [this, graphLabelNum, color]()
     {
         ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("background-color:" + color + ";");
     });
 
-    QTimer::singleShot(500, this, [this, graphLabelNum]()
+    QTimer::singleShot(duration, this, [this, graphLabelNum]()
     {
         ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("");
 

@@ -164,7 +164,7 @@ void MainWindow::updateRecordView(QStringList recordItems)
  * Parameters: none
  * Return: void
 */
-void MainWindow::powerChange()      //NOTE: needs testing
+void MainWindow::powerChange()
 {
     if(deviceOn)
     {
@@ -223,7 +223,7 @@ void MainWindow::powerChange()      //NOTE: needs testing
  * Parameters: none
  * Return: void
 */
-void MainWindow::endSession()       //NOTE: needs testing
+void MainWindow::endSession()
 {
     ui->console->append("session ended");
 
@@ -385,7 +385,7 @@ void MainWindow::replaySession()
  * Parameters: s
  * Return: void
 */
-void MainWindow::initSession(Session* s)    //NOTE: needs testing
+void MainWindow::initSession(Session* s)
 {
     inactivityTimer->stop();
 

@@ -60,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     connect(ui->replaceBatteryButton, &QPushButton::released, this, [this]()
     {
-        changeBatteryLevel(63.0);
+        changeBatteryLevel(100.0);
     });
 
     connect(sessionTimer, &QTimer::timeout, this, [this]()

@@ -9,8 +9,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     db = new DBManager();
 
-    profile = db->getProfile(1);
+    profile = db->getProfile(1);    //change parameter to switch profiles
 
+    //session types assigned to each group
     groups.append(new Group({0, 2, 4, 6}));
     groups.append(new Group({1, 2, 3, 4}));
 
@@ -34,7 +35,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     {
         if(deviceOn)
         {
-            timer->start(1000);     //NOTE: is this needed?
+            timer->start(1000);     //hold power to turn off device
+
             if(!sessionOn)
                 switchGroup();
             else
@@ -64,7 +66,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     {
         drainBattery();
 
-        ui->console->append(QString::number(currentTimerCount));
+        if(currentTimerCount % 10 == 0)
+            ui->console->append(QString::number(currentTimerCount) + "s left");
 
         if(currentTimerCount > 0)
             currentTimerCount--;
@@ -344,8 +347,6 @@ void MainWindow::replaySession()
         {
             int recordIndex = ui->recordList->currentRow();
 
-            ui->console->append(QString::number(recordIndex));
-
             if(recordIndex > -1)
             {
                 Session* s = dbSessions.at(recordIndex);
@@ -397,10 +398,12 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
         blink(1, "green");
     }
 
+    sessionOn = true;       //NOTE: check
+
     ui->selectButton->blockSignals(true);
     ui->connectComboBox->blockSignals(false);
     ui->recordButton->blockSignals(false);
-    ui->replayButton->blockSignals(true);
+//    ui->replayButton->blockSignals(true);
 //    ui->upButton->blockSignals(true);
 //    ui->downButton->blockSignals(true);
 
@@ -410,7 +413,6 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
     ui->sessionWidget->setEnabled(false);
     ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
 
-    sessionOn = true;       //NOTE: check
     currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
     startSession();
 }
@@ -480,7 +482,6 @@ void MainWindow::selectSession()
 
         QString s = ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->objectName().remove(0,5);
 
-        //blink((groups.at(groupIndex)->sessions.at(typeIndex))+1);
         initSession(new Session(s, g.toInt(), 1));
     }
     else if(groupIndex == 2)

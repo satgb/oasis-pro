@@ -39,7 +39,6 @@ private:
     Session* currentSession;
 
     bool deviceOn;
-    bool sessionOn;
     int groupIndex;
     int typeIndex;
     int currentTimerCount;

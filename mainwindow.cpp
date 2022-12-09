@@ -9,14 +9,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     db = new DBManager();
 
-    profile = db->getProfile(1);    //change parameter to switch profiles
+    /********************************************************************/
+    profile = db->getProfile(1);   //change parameter to switch profiles
+    /********************************************************************/
 
     //session types assigned to each group
     groups.append(new Group({0, 2, 4, 6}));
     groups.append(new Group({1, 2, 3, 4}));
 
+    currentSession = nullptr;
+
     deviceOn = false;
-    sessionOn = false;
 
     groupIndex = -1;
     typeIndex = -1;
@@ -29,15 +32,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     inactivityTimer = new QTimer(this);
     inactivityTimer->setSingleShot(true);
 
-    currentSession = nullptr;
-
     connect(ui->powerButton, &QPushButton::pressed, this, [this]()
     {
         if(deviceOn)
         {
             timer->start(1000);     //hold power to turn off device
 
-            if(!sessionOn)
+            if(currentSession == nullptr)
                 switchGroup();
             else
                 endSession();
@@ -104,7 +105,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->addWidget->hide();
 
     ui->batteryLevelSpinBox->setValue(profile->batteryLvl);
-    ui->batteryLevelSpinBox->setReadOnly(true);
+    ui->batteryLevelSpinBox->setReadOnly(true);     //disable line editing for battery level
 
     dbSessions = db->getSessions(profile->id);
     for (int x = 0; x < dbSessions.size(); x++)
@@ -131,7 +132,7 @@ MainWindow::~MainWindow()
 */
 void MainWindow::recordSession()
 {
-    if(currentSession != nullptr && sessionOn)
+    if(currentSession != nullptr)
     {
         //create new Session pointer - do not use currentSession
         Session *s = new Session(currentSession->type, currentSession->duration, currentSession->intensity);
@@ -182,7 +183,7 @@ void MainWindow::powerChange()      //NOTE: needs testing
 
         sessionTimer->stop();
         currentTimerCount = -1;
-        sessionOn = false;
+
         ui->selectButton->blockSignals(false);
         ui->powerButton->blockSignals(false);
 
@@ -245,6 +246,7 @@ void MainWindow::endSession()       //NOTE: needs testing
     QTimer::singleShot(3000, this, [this](){blink(2);});
     QTimer::singleShot(3500, this, [this](){blink(1);});
 
+    //block buttons to sync with blink timing
     QTimer::singleShot(4000, this, [this]()
     {
         ui->upButton->blockSignals(false);
@@ -280,7 +282,7 @@ void MainWindow::changeBatteryLevel(double newLevel)
     else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
     {
         barsToFlash = 1;
-        if(sessionOn)
+        if(currentSession != nullptr)
             endSession();
     }
 
@@ -292,6 +294,7 @@ void MainWindow::changeBatteryLevel(double newLevel)
         for(int i = 1; i <= barsToFlash; i++)
             blink(i);
 
+        //block buttons to sync with blink timing
         QTimer::singleShot(500, this, [this]()
         {
             ui->upButton->blockSignals(false);
@@ -355,7 +358,7 @@ void MainWindow::replaySession()
 {
     if(deviceOn)
     {
-        if(sessionOn == false)
+        if(currentSession == nullptr)
         {
             int recordIndex = ui->recordList->currentRow();
 
@@ -393,6 +396,7 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
 
     ui->upButton->blockSignals(true);
     ui->downButton->blockSignals(true);
+    ui->powerButton->blockSignals(true);
 
     //CONNECTION TEST
     if(ui->connectComboBox->currentIndex() == 0)    //no connection
@@ -413,19 +417,21 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
         blink(1, "green");
     }
 
+    //block buttons to sync with blink timing
     QTimer::singleShot(500, this, [this]()
     {
         ui->upButton->blockSignals(false);
         ui->downButton->blockSignals(false);
+        ui->powerButton->blockSignals(false);
     });
-
-    sessionOn = true;       //NOTE: check
 
     ui->selectButton->blockSignals(true);
     ui->connectComboBox->blockSignals(false);
     ui->recordButton->blockSignals(false);
 
     ui->sessionWidget->setEnabled(false);
+
+    //display intensity on graph
     ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
 
     currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
@@ -493,9 +499,9 @@ void MainWindow::selectSession()
 {
     if(groupIndex > -1 && groupIndex < 2 && typeIndex > -1)
     {
-        QString g = ui->groups->itemAt(groupIndex)->widget()->objectName().remove(0,5);
+        QString g = ui->groups->itemAt(groupIndex)->widget()->objectName().remove(0,5);     //remove "label" from object name
 
-        QString s = ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->objectName().remove(0,5);
+        QString s = ui->sessions->itemAt(groups.at(groupIndex)->sessions.at(typeIndex))->widget()->objectName().remove(0,5);    //remove "label" from object name
 
         initSession(new Session(s, g.toInt(), 1));
     }
@@ -529,7 +535,7 @@ void MainWindow::pressUp()
 {
     if(deviceOn)
     {
-        if(sessionOn)
+        if(currentSession != nullptr)
         {
             if(currentSession->intensity < 8)
             {
@@ -567,7 +573,7 @@ void MainWindow::pressDown()
 {
     if(deviceOn)
     {
-        if(sessionOn)
+        if(currentSession != nullptr)
         {
             if(currentSession->intensity > 1)
             {

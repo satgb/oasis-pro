@@ -25,19 +25,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     sessionTimer = new QTimer(this);
 
+    inactivityTimer = new QTimer(this);
+    inactivityTimer->setSingleShot(true);
+
     currentSession = nullptr;
 
     connect(ui->powerButton, &QPushButton::pressed, this, [this]()
     {
         if(deviceOn)
         {
-            timer->start(1000);
+            timer->start(1000);     //NOTE: is this needed?
             if(!sessionOn)
                 switchGroup();
             else
-            {
                 endSession();
-            }
         }
         else
             timer->start(1000);
@@ -56,6 +57,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     connect(ui->batteryLevelSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::changeBatteryLevel);
 
+    connect(ui->replaceBatteryButton, &QPushButton::released, this, [this]()
+    {
+        changeBatteryLevel(100.0);
+    });
+
     connect(sessionTimer, &QTimer::timeout, this, [this]()
     {
         drainBattery();
@@ -68,6 +74,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         if(currentTimerCount == 0)
             endSession();
     });
+
+    connect(inactivityTimer, &QTimer::timeout, this, &MainWindow::powerChange);
 
     connect(ui->connectComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::startSession);
     ui->connectComboBox->blockSignals(true);
@@ -95,8 +103,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->addWidget->hide();
 
     ui->batteryLevelSpinBox->setValue(profile->batteryLvl);
-    ui->batteryLevelSpinBox->setSingleStep(10);
-//    ui->batteryLevelSpinBox->findChild<QLineEdit*>();         //disable line edit of battery level
+    ui->batteryLevelSpinBox->setReadOnly(true);
 
     dbSessions = db->getSessions(profile->id);
     for (int x = 0; x < dbSessions.size(); x++)
@@ -202,6 +209,8 @@ void MainWindow::powerChange()      //NOTE: needs testing
             ui->powerLED->setStyleSheet("background-color:green;");
             updateRecordView(allSessions);
             ui->replayButton->blockSignals(false);
+
+            inactivityTimer->start(120000);     //2 minute inactivity
         }
     }
 }
@@ -253,8 +262,6 @@ void MainWindow::endSession()       //NOTE: needs testing
 void MainWindow::changeBatteryLevel(double newLevel)
 {
     int barsToFlash = 0;
-//    if(currentSession != nullptr && ui->connectComboBox->currentIndex() > 0)
-//    {
 
     //displays battery when 1 full bar is depleted
     if(profile->batteryLvl > 87.5 && newLevel <= 87.5)
@@ -270,11 +277,14 @@ void MainWindow::changeBatteryLevel(double newLevel)
     else if(profile->batteryLvl > 25.0 && newLevel <= 25.0)
         barsToFlash = 2;
     else if(profile->batteryLvl > 12.5 && newLevel <= 12.5)
+    {
         barsToFlash = 1;
+        if(sessionOn)
+            endSession();
+    }
 
     for(int i = 1; i <= barsToFlash; i++)
         blink(i);
-//    }
 
 
     if (newLevel >= 0.0 && newLevel <= 100.0)
@@ -323,7 +333,7 @@ void MainWindow::startSession()
 }
 
 /*
- * Function: initSession
+ * Function: replaySession
  * Purpose: Initializes the selected recording
  * Parameters: none
  * Return: void
@@ -357,6 +367,15 @@ void MainWindow::replaySession()
 */
 void MainWindow::initSession(Session* s)    //NOTE: needs testing
 {
+    inactivityTimer->stop();
+
+    if(profile->batteryLvl < 12.5)
+    {
+        ui->console->append("battery too low to run session");
+        powerChange();
+        return;
+    }
+
     currentSession = s;
 
     ui->console->append(currentSession->type + " for " + QString::number(currentSession->duration));
@@ -393,7 +412,7 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
     ui->sessionWidget->setEnabled(false);
     ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
 
-    sessionOn = true;
+    sessionOn = true;       //NOTE: check
     currentTimerCount = currentSession->duration * 6;   //convert duration (min) to sec and divide by 10 to speed up simulation
     startSession();
 }
@@ -404,11 +423,10 @@ void MainWindow::initSession(Session* s)    //NOTE: needs testing
  * Parameters: none
  * Return: void
 */
-void MainWindow::drainBattery()     //NOTE:BATTERY DRAIN CALCULATION
+void MainWindow::drainBattery()
 {
-    //battery lasts for 5 minutes - longest session is 4.5 minutes
-    double batteryLevel = profile->batteryLvl - 0.33;
-    //double batteryLevel = profile->batteryLvl - (0.0002 + (currentSession->intensity/100000.00) + (ui->connectComboBox->currentIndex() == 1 ? 0.00001 : 0.00002));
+    //battery lasts for 5-15 min depending on usage
+    double batteryLevel = profile->batteryLvl - 0.01 - (currentSession->intensity * 0.02) - (ui->connectComboBox->currentIndex() == 1 ? 0.08 : 0.16);
 
     changeBatteryLevel(batteryLevel);
 }
@@ -442,8 +460,6 @@ void MainWindow::addSession()
             int duration = ui->durationComboBox->currentText().toInt();
             int intensity = ui->intensitySpinBox->value();
 
-            //ui->console->append(type + " " + QString::number(duration) + " " + QString::number(intensity));
-
             ui->addWidget->hide();
             ui->powerButton->blockSignals(false);
 
@@ -470,9 +486,7 @@ void MainWindow::selectSession()
         initSession(new Session(s, g.toInt(), 1));
     }
     else if(groupIndex == 2)
-    {
         addSession();
-    }
 }
 
 void MainWindow::blink(int graphLabelNum, QString color)
@@ -489,9 +503,7 @@ void MainWindow::blink(int graphLabelNum, QString color)
         ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(graphLabelNum))->setStyleSheet("");
 
         if(currentSession != nullptr)
-        {
             ui->graphWidget->findChild<QLabel*>("graphLabel" + QString::number(currentSession->intensity))->setStyleSheet("background-color:yellow;");
-        }
 
         ui->upButton->blockSignals(false);
         ui->downButton->blockSignals(false);

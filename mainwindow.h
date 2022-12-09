@@ -28,6 +28,7 @@ private:
     Ui::MainWindow *ui;
     QTimer* timer;
     QTimer* sessionTimer;
+    QTimer* inactivityTimer;
     QListWidget* activeQListWidget;
     QList<Group*> groups;
     QVector<Session*> dbSessions;

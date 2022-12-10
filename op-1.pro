@@ -15,23 +15,26 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+source_dir = src
+forms_dir = ui
+
 SOURCES += \
-    dbmanager.cpp \
-    group.cpp \
-    main.cpp \
-    mainwindow.cpp \
-    profile.cpp \
-    session.cpp
+    $${source_dir}/dbmanager.cpp \
+    $${source_dir}/group.cpp \
+    $${source_dir}/main.cpp \
+    $${source_dir}/mainwindow.cpp \
+    $${source_dir}/profile.cpp \
+    $${source_dir}/session.cpp
 
 HEADERS += \
-    dbmanager.h \
-    group.h \
-    mainwindow.h \
-    profile.h \
-    session.h
+    $${source_dir}/dbmanager.h \
+    $${source_dir}/group.h \
+    $${source_dir}/mainwindow.h \
+    $${source_dir}/profile.h \
+    $${source_dir}/session.h
 
 FORMS += \
-    mainwindow.ui
+    $${forms_dir}/mainwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

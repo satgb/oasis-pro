@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QList>
-#include <QListWidget>
 #include <QtMath>
 
 #include "dbmanager.h"

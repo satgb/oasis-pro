@@ -636,6 +636,3 @@ void MainWindow::switchGroup()
         ui->groups->itemAt(groupIndex)->widget()->setStyleSheet("background-color:yellow;");
     }
 }
-
-
-

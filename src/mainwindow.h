@@ -29,7 +29,7 @@ private:
     QTimer* timer;
     QTimer* sessionTimer;
     QTimer* inactivityTimer;
-    QList<Group*> groups;
+    QVector<Group*> groups;
     QVector<Session*> dbSessions;
 
     QStringList allSessions;
